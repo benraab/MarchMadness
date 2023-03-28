@@ -1,0 +1,264 @@
+---
+title: "Ivy March Madness"
+output: html_document
+date: "2023-03-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo = FALSE}
+df <- read.csv("https://query.data.world/s/tjwpau5shchshin3kn5ohzkgukxwky?dws=00000", header=TRUE, stringsAsFactors=FALSE)
+
+# Eliminate years that are before 2012
+df$Date <- as.numeric(substr(df$Date, 6, 7))
+df <- df[df$Date >= 12 & df$Date < 16, -3]
+
+# Only focus on Round of 64, 1-5 seeds vs 12-16 seeds.
+df <- df[df$Round == "Round of 64", c(1, 3:8)]
+df <- df[df$Winning.Seed < 6 | df$Winning.Seed > 11, ]
+
+# Switch seeds so always have higher seed in same column.
+upsets <- df[df$Winning.Seed > 11, ]
+upsets$fav_seed <- upsets$Losing.Seed
+upsets$dog_seed <- upsets$Winning.Seed
+upsets$fav_name <- upsets$Loser
+upsets$fav_score <- upsets$Losing.Score
+
+for (i in 1:17){
+  upsets[i, "Winning.Seed"] <- upsets[i, "fav_seed"]
+  upsets[i, "Losing.Seed"] <- upsets[i, "dog_seed"]
+  upsets[i, "Loser"] <- upsets[i, "Winner"]
+  upsets[i, "Winner"] <- upsets[i, "fav_name"]
+  upsets[i, "Losing.Score"] <- upsets[i, "Winning.Score"]
+  upsets[i, "Winning.Score"] <- upsets[i, "fav_score"]
+}
+upsets <- upsets[ , 1:7]
+
+df <- df[df$Winning.Seed < 6, ]
+
+# Merge upset database back into dataframe
+df <- rbind(upsets, df)
+
+#Clean up names of columns
+names(df)[1] <- "Year"
+names(df)[2] <- "Favorite_Seed"
+names(df)[3] <- "Favorite_Name"
+names(df)[4] <- "Favorite_Score"
+names(df)[5] <- "Underdog_Seed"
+names(df)[6] <- "Underdog_Name"
+names(df)[7] <- "Underdog_Score"
+df$Year <- df$Year + 2000
+
+
+# Bring in recent data [Manual input]
+df <- rbind(df, recent[-1, ])
+
+# Add indicator for upset or not
+#Fill in upset values for recent data
+df$Upset <- 0
+for (i in 1:length(df$Year)){
+  if (df[i, "Favorite_Score"] < df[i, "Underdog_Score"]){
+    df[i, "Upset"] <- 1
+  }
+}
+
+#Add column for point differential (measured from underdog perspective)
+df$PointDiff <- df$Underdog_Score - df$Favorite_Score
+
+# Clean all of the names
+
+df$Favorite_Name <- gsub("State", "St.", df$Favorite_Name)
+df$Favorite_Name <- gsub("Miami, Florida", "Miami", df$Favorite_Name)
+df$Favorite_Name <- gsub("Nevada-Las vegas", "UNLV", df$Favorite_Name)
+df$Favorite_Name <- gsub("North Carolina", "UNC", df$Favorite_Name)
+df$Favorite_Name <- gsub("Villnanova", "Villanova", df$Favorite_Name)
+
+df$Underdog_Name <- gsub("State", "St.", df$Underdog_Name)
+df$Underdog_Name <- gsub("FGCU", "Florida Gulf Coast", df$Underdog_Name)
+df$Underdog_Name <- gsub("Kent. St", "Kent St.", df$Underdog_Name)
+df$Underdog_Name <- gsub("N[.]", "North", df$Underdog_Name)
+df$Underdog_Name <- gsub("S. Dakota St.", "South Dakota St.", df$Underdog_Name)
+df$Underdog_Name <- gsub("California-Irvine", "UC Irvine", df$Underdog_Name)
+df$Underdog_Name <- gsub("Wilimington", "Wilmington", df$Underdog_Name)
+df$Underdog_Name <- gsub("VCU", "Virginia Commonwealth", df$Underdog_Name)
+df$Underdog_Name <- gsub("Wintrhop", "Winthrop", df$Underdog_Name)
+
+sort(unique(df$Underdog_Name))
+
+```
+
+```{r}
+
+# Create new lists for conference team names specifically
+bigsky <- c("Eastern Washington", "Idaho", "Idaho St.", "Montana", "Montana St.",
+            "Northern Arizona", "Northern Colorado", "Portland St.", "Sacramento St.",
+            "Weber St.")
+
+ivies <- c("Yale", "Harvard", "Princeton", "Penn", "Brown", "Cornell", "Columbia",
+           "Dartmouth")
+
+wac <- c("Utah Valley", "Sam Houston", "Southern Utah", "Grand Canyon", "Seattle",
+         "Stephen F. Austin", "Tarleton St.", "Texas Rio-Grande Valley", "Cal St. Bakersfield",
+         "Abilene Christian", "UT Arlington", "Utah Tech", "New Mexico St.")
+
+
+# Make a database of those games
+
+# FORMAT SAMPLE
+
+
+bigsky_games <- df[which(df$Underdog_Name %in% bigsky), ]
+
+ivy_games <- df[which(df$Underdog_Name %in% ivies), ]
+
+wac_games <- df[which(df$Underdog_Name %in% wac), ]
+
+# All nonivies
+
+nonivies <- df[which(!df$Underdog_Name %in% ivies), ]
+
+# Create separate databases for each seed. Will make bootstrapping easier.
+ones <- nonivies[nonivies$Favorite_Seed == 1, ]
+twos <- nonivies[nonivies$Favorite_Seed == 2, ]
+threes <- nonivies[nonivies$Favorite_Seed == 3, ]
+fours <- nonivies[nonivies$Favorite_Seed == 4, ]
+fives <- nonivies[nonivies$Favorite_Seed == 5, ]
+```
+We are looking at 10 Ivy League games. 
+```{r}
+ivy_games
+sum(ivy_games$Upset)
+mean(ivy_games$PointDiff)
+table(ivy_games$Underdog_Seed)
+nrow(ivy_games[ivy_games$PointDiff >= -9, ])
+nrow(ivy_games[ivy_games$PointDiff >= -3, ])
+```
+In those games, the league has:
+* 4 wins
+* an average point differential of -3.8
+* 8 single digit or better games (lose by 9 or less / win)
+* 6 one possession or better games (loss by 3 or less / win)
+
+We want to see how often that could occur by chance for teams of the same seeds. Over this time, the Ivy League representative has been a 12 seed four times, a 14 seed three times, and a 13, 15, and 16 once each. 
+
+So what would happen if we took random samplings from those same seeds. How often could they win 40% of their games and keep the same close point differential.
+```{r}
+wins <- rep(0, 100000)
+point_diff <- rep(0, 100000)
+single_digit_games <- rep(0, 100000)
+one_possession_games <- rep(0, 100000)
+
+fake_df <- data.frame(wins, point_diff, single_digit_games, one_possession_games)
+
+for (i in 1:100000){
+  sample_data <- c(sample(fives$PointDiff, 4), 
+                sample(fours$PointDiff, 1),
+                sample(threes$PointDiff, 3),
+                sample(twos$PointDiff, 1),
+                sample(ones$PointDiff, 1))
+  
+  sample_wins <- 0
+  
+  for (j in 1:length(sample_data)){
+    if (sample_data[j] > 0){
+      sample_wins <- sample_wins + 1
+    }
+  }
+  
+  sample_single_digit_games <- 0
+  for (k in 1:length(sample_data)){
+    if (sample_data[k] >= -9){
+      sample_single_digit_games <- sample_single_digit_games + 1
+    }
+  }
+  
+  sample_one_possession_games <- 0
+  for (m in 1:length(sample_data)){
+    if (sample_data[m] >= -3){
+      sample_one_possession_games <- sample_one_possession_games + 1
+    }
+  }    
+  
+  fake_df[i, "wins"] <- sample_wins
+  fake_df[i, "point_diff"] <- mean(sample_data)
+  fake_df[i, "single_digit_games"] <- sample_single_digit_games
+  fake_df[i, "one_possession_games"] <- sample_one_possession_games
+}
+```
+
+
+After running 100,000 samples, we can see how many times a random sample of the same 10 seeds achieved the same metrics as the Ivy League.
+
+```{r}
+
+hist(fake_df$wins, 
+     main = "Histogram of bootstrapped sample wins, N = 100,000",
+     xlab = "Sample Wins",
+     breaks = 9,
+     xlim = c(0, 10),
+     col = "lightblue")
+abline(v = 3.5, lwd = 3, col = "navy")
+legend("topright", "Ivy Wins", lwd = 3, col = "navy")
+
+hist(fake_df$point_diff,
+     main = "Histogram of bootstrapped sample point differentials, N = 100,000",
+     xlab = "Sample Point Differential",
+     col = "lightblue")
+abline(v = -3.8, lwd = 3, col = "navy")
+legend("topright", "Ivy Point Differential", lwd = 3, col = "navy")
+
+hist(fake_df$single_digit_games,
+     main = "Histogram of bootstrapped sample single-digit games, N = 100,000",
+     xlab = "Sample Single Digit Games",
+     breaks = 10,
+     col = "lightblue")
+abline(v = 7.5, lwd = 3, col = "navy")
+legend("topright", "Ivy Single Digit Games", lwd = 3, col = "navy")
+
+hist(fake_df$one_possession_games,
+     main = "Histogram of bootstrapped sample one-possession games, N = 100,000",
+     xlab = "Sample One Possession Games",
+     breaks = 10,
+     col = "lightblue")
+abline(v = 5.5, lwd = 3, col = "navy")
+legend("topright", "Ivy Single Digit Games", lwd = 3, col = "navy")
+```
+
+While those graphs are helpful, the numbers are also quite illuminating. The table below shows the Ivy value, the average sample value, and the likelihood of achieving the Ivy numbers or better by chance in our sample data.
+
+```{r}
+Categories <- c("Wins", "Point Differential", "Single Digit Games", "One-Possession Games")
+
+Ivy_Value <- c(4, -3.8, 8, 6)
+
+Sample_Average <- c(round(mean(fake_df$wins), 2), round(mean(fake_df$point_diff), 2),
+                    round(mean(fake_df$single_digit_games), 2),
+                    round(mean(fake_df$one_possession_games), 2))
+
+Sample_Likelihood <- c(paste0(round(nrow(fake_df[fake_df$wins >= 4, ]) / 1000, 2), "%"),
+                       paste0(round(nrow(fake_df[fake_df$point_diff >= -3.8, ]) / 1000, 2), "%"),
+                       paste0(round(nrow(fake_df[fake_df$single_digit_games >= 8, ]) / 1000, 2), "%"),
+                       paste0(round(nrow(fake_df[fake_df$one_possession_games >= 6, ]) / 1000, 2), "%"))
+
+comparisons <- data.frame(Categories, Ivy_Value, Sample_Average, Sample_Likelihood)
+comparisons
+```
+
+
+
+```{r}
+paste0("The odds of winning at least four games and keeping a point differential less than -3.8 are ",
+       nrow(fake_df[fake_df$wins >= 4 & fake_df$point_diff >= -3.8, ])/1000, "%.")
+
+paste0("The odds of winning at least four games and playing at least six one-possession games are ",
+       nrow(fake_df[fake_df$wins >= 4 & fake_df$one_possession_games >= 6, ])/1000, "%.")
+
+paste0("The odds of winning at least four games and keeping a point differential less than -3.8 and playing a total of 8+ close games are ",
+       nrow(fake_df[fake_df$wins >= 4 & fake_df$point_diff >= -3.8 & fake_df$single_digit_games >= 8, ])/1000, "%.")
+
+paste0("The odds of having at least 4 wins, 6 one-possession or better games, and 8 single-digit or better games are ",
+       nrow(fake_df[fake_df$wins >= 4 & fake_df$one_possession_games >= 6
+                    & fake_df$single_digit_games >= 8, ])/1000, "%.")
+```
