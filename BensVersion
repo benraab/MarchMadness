@@ -36,6 +36,8 @@ for (i in 1:17){
 }
 upsets <- upsets[ , 1:7]
 
+edit
+
 df <- df[df$Winning.Seed < 6, ]
 
 # Merge upset database back into dataframe
