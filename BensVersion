@@ -105,6 +105,24 @@ wac <- c("Utah Valley", "Sam Houston", "Southern Utah", "Grand Canyon", "Seattle
          "Stephen F. Austin", "Tarleton St.", "Texas Rio-Grande Valley", "Cal St. Bakersfield",
          "Abilene Christian", "UT Arlington", "Utah Tech", "New Mexico St.")
 
+CAA <- c("Charleston", "Delaware", "Drexel", "Northeastern", "UNC Wilmington", "James Madison", "VCU.")
+
+Patriot <- c("Colgate", "Bucknell", "Holy Cross", "Lafayette", "American", "Bucknell", "Lehigh.")
+
+MEAC <- c("Howard", Norfolk St.", "Hampton", "North Carolina Central", "North Carolina A&T.")
+
+Ohio Valley <- c("Southeast Missouri St.", "Murray St.", "Morehead St.", "Belmont.", "Jacksonville St.", "Austin Peay", "Eastern Kentucky.")
+
+Southland <- c("Stephen F Austin", "Abilene Christian", "Texas A&M Corpus Chris", "New Orleans", "Northwestern St.", "Lamar.")
+
+SWAC <- c("Texas Southern", "Southern.")
+
+NEC <- c("Farleigh Dickinson", "Mount St. Mary's", "Robert Morris", "LIU Brooklyn.")
+
+AAC <- c("Houston", "Memphis", "UCF", "Cincinnati", "Wichita St.", "SMU", "Connecticut", "Temple", "Louisville.")
+
+WCC <- c("Gonzaga", "Saint Mary's", "San Francisco", "BYU.")
+
 
 # Make a database of those games
 
