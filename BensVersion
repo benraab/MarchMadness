@@ -104,6 +104,12 @@ ivies <- c("Yale", "Harvard", "Princeton", "Penn", "Brown", "Cornell", "Columbia
 wac <- c("Utah Valley", "Sam Houston", "Southern Utah", "Grand Canyon", "Seattle",
          "Stephen F. Austin", "Tarleton St.", "Texas Rio-Grande Valley", "Cal St. Bakersfield",
          "Abilene Christian", "UT Arlington", "Utah Tech", "New Mexico St.")
+         
+CUSA <- c("Florida Atlantic", "UAB", "North Texas", "Old Dominion", "Marshall", "Middle Tennessee", "Tulsa", "Memphis", "Southern Miss.")
+
+A10 <- c("VCU", "Davidson", "Richmond", "St. Bonaventure", "Saint Louis", "Rhode Island", "Dayton", "Saint Joseph's", "Massachusetts", "George Washington", "Butler", "Temple", "La Salle", "Xavier.")
+
+
 
 
 # Make a database of those games
